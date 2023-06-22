@@ -1,0 +1,120 @@
+image: python:3.9-slim
+
+# стейджи пайплайна
+stages:
+  - tasks # у этого стейджа есть стэпы: 'tasks from 3rd to 11th'
+
+# внутри пайплайна автоматически поднимается
+# пустая база Postgres (каждый раз на новый степ)
+services:
+  - name: postgres:15-alpine
+    alias: postgres
+
+
+
+variables:
+#  переменные окружения для Postgres
+  POSTGRES_DB: postgres
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: password
+  POSTGRES_HOST_AUTH_METHOD: trust
+
+#  переменные окружения для вспомогательного
+#  скрипта utils/pypsql.py и тестов
+  DBNAME: postgres
+  DBHOST: postgres
+  DBPORT: 5432
+  DBUSER: postgres
+  DBPASSWORD: password
+
+#  аккуратное формирование всяких абсолютных
+#  путей к файлам и директориям
+#  у вас будет ${PROJECT_DIR} тождественно равен ${CI_PROJECT_DIR}
+  PROJECT_DIR: ${CI_PROJECT_DIR}
+  ANALYSIS_DIR: ${PROJECT_DIR}/analysis
+  SCRIPTS_DIR: ${PROJECT_DIR}/scripts
+  TESTS_DIR: ${PROJECT_DIR}/tests
+  UTILS_DIR: ${PROJECT_DIR}/utils
+  PYPSQL: ${UTILS_DIR}/pypsql.py
+
+#  переменные для цвета в консоли (можете
+#  использовать какие-то другие свои)
+  NO_COLOUR: '\033[0m'
+  LIGHT_RED: '\033[1;31m'
+
+
+.setup:
+  before_script:
+    - pip install -r ${PROJECT_DIR}/requirements.txt > /dev/null 2> /dev/null
+
+
+tasks from 3rd to 11th:
+  stage: tasks
+  extends:
+    - .setup
+  script:
+    - echo -e "${LIGHT_RED}>>> Task №3 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/library_ddl.sql" --cat
+
+    - echo -e "${LIGHT_RED}>>> Task №4-5 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/library_inserts.sql"
+    - echo "Table 'library.Book' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM library.Book" --verbose
+    - echo "Table 'library.Author' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM library.Author" --verbose
+    - echo "Table 'library.Genre' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM library.Genre" --verbose
+    - echo "Table 'library.Reserve' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM library.Reserve" --verbose
+
+    - echo -e "${LIGHT_RED}>>> Task №6-7 <<<${NO_COLOUR}"
+    - echo "Вывести все заполненные шкафы (кол-во книг на них больше 9)"
+    - python3 ${PYPSQL} --sql="select sum(amount) as total_amount, wardrobe from library.Book as b join library.Location as l on b.book_id = l.book_id group by wardrobe having sum(amount) > 9" --verbose
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_selects/select1.sql" pytest ${TESTS_DIR}/test1.py
+
+    - echo "Вывести всех посетителей, взявших книги, и отсортировать по дате начала брони"
+    - python3 ${PYPSQL} --sql="select name, surname, begin_date, end_date from library.Reserve order by begin_date, end_date" --verbose
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_selects/select2.sql" pytest ${TESTS_DIR}/test2.py
+
+    - echo "Вывести жанры книг в нашей библиотеке, отсортировать по количеству произведений, а также вывести их ранг"
+    - python3 ${PYPSQL} --sql="select rank() over (order by count(b.book_id) desc) as rank, genre_name,  count(b.book_id) from library.Book as b join library.Book_Genre as bg on bg.book_id = b.book_id join library.Genre as g on g.genre_id = bg.genre_id group by genre_name" --verbose
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_selects/select3.sql" pytest ${TESTS_DIR}/test3.py
+
+    - echo "Вывести авторов с порядковым номером их книг из библиотеки"
+    - python3 ${PYPSQL} --sql="select author_name, author_surname, title, rank() over (partition by (author_name, author_surname) order by title) as book_number_per_author from library.Author as a join library.Alias_Author as aa on a.author_id = aa.author_id join library.Book_Alias as ba on aa.alias_id = ba.alias_id join library.Book as b on ba.book_id = b.book_id" --verbose
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_selects/select4.sql" pytest ${TESTS_DIR}/test4.py
+
+    - echo "Вывести посетителей и кол-во книг, которые они брали. Отсортировать по этому количеству"
+    - python3 ${PYPSQL} --sql="select distinct name, surname, count(book_id) over (partition by (name, surname)) as reserved_books from library.Book_Reserve as br join library.Reserve as r on r.res_id = br.res_id order by reserved_books desc" --verbose
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_selects/select5.sql" pytest ${TESTS_DIR}/test5.py
+
+    - echo "Для каждого посетителя вывести его самый долгий период (в днях), на который он брал книгу, и название этой книги"
+    - python3 ${PYPSQL} --sql="select distinct on (name, surname) name, surname, title, res_days from (select name, surname, title,  end_date - begin_date as res_days, first_value(end_date - begin_date) over (partition by r.res_id) from library.Reserve as r join library.Book_Reserve as br on br.res_id = r.res_id join library.Book as b on b.book_id = br.book_id) as prt where res_days = first_value" --verbose
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_selects/select6.sql" pytest ${TESTS_DIR}/test6.py
+
+
+    - echo -e "${LIGHT_RED}>>> Task №9 + tests <<<${NO_COLOUR}"
+    - echo "Cокрытие полей с персональной информацией посетителей, бравших книгу в библиотеке"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/library_views/library_view1.sql"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_views/library_view1.sql" pytest ${TESTS_DIR}/test_view1.py
+
+    - echo "Получение сводной таблицы с технической информацией для отображения пользовательской информации о наличии книг в библиотеке"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/library_views/library_view2.sql"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_views/library_view2.sql" pytest ${TESTS_DIR}/test_view2.py
+
+    - echo "Сокрытие поля с персональными данными посетителей из таблицы Reserve для отображения информации о брони"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/library_views/library_view3.sql"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_views/library_view3.sql" pytest ${TESTS_DIR}/test_view3.py
+
+    - echo "Получение сводной таблицы, содержащей информацию о самых ходовых жанрах в библиотеке. Отсортируем по убыванию результирующей колонки"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/library_views/library_view4.sql"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_views/library_view4.sql" pytest ${TESTS_DIR}/test_view4.py
+
+    - echo "Сокрытие полей с технической информацией о расположении книг"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/library_views/library_view5.sql"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_views/library_view5.sql" pytest ${TESTS_DIR}/test_view5.py
+
+    - echo "Получение сводной таблицы о самых частых посетителях"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/library_views/library_view6.sql"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/library_views/library_view6.sql" pytest ${TESTS_DIR}/test_view6.py
+
