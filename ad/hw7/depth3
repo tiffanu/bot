@@ -1,0 +1,33 @@
+digraph Tree {
+node [shape=box, style="filled, rounded", color="black", fontname="helvetica"] ;
+edge [fontname="helvetica"] ;
+0 [label=<temp &le; 0.432<br/>squared_error = 3735376.705<br/>samples = 431<br/>value = 4674.432>, fillcolor="#edaa79"] ;
+1 [label=<season_4 &le; 0.5<br/>squared_error = 2298000.28<br/>samples = 160<br/>value = 3085.969>, fillcolor="#f8dcc9"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label=<atemp &le; 0.349<br/>squared_error = 1480559.316<br/>samples = 104<br/>value = 2463.971>, fillcolor="#fcf0e8"] ;
+1 -> 2 ;
+3 [label=<squared_error = 738014.852<br/>samples = 72<br/>value = 2005.403>, fillcolor="#ffffff"] ;
+2 -> 3 ;
+4 [label=<squared_error = 1613575.625<br/>samples = 32<br/>value = 3495.75>, fillcolor="#f5cfb4"] ;
+2 -> 4 ;
+5 [label=<hum &le; 0.748<br/>squared_error = 1763266.917<br/>samples = 56<br/>value = 4241.107>, fillcolor="#f0b88f"] ;
+1 -> 5 ;
+6 [label=<squared_error = 1529443.497<br/>samples = 46<br/>value = 4473.261>, fillcolor="#efb083"] ;
+5 -> 6 ;
+7 [label=<squared_error = 1450510.36<br/>samples = 10<br/>value = 3173.2>, fillcolor="#f7dac4"] ;
+5 -> 7 ;
+8 [label=<hum &le; 0.816<br/>squared_error = 2214751.968<br/>samples = 271<br/>value = 5612.269>, fillcolor="#e78c4a"] ;
+0 -> 8 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+9 [label=<temp &le; 0.513<br/>squared_error = 1988846.336<br/>samples = 246<br/>value = 5788.667>, fillcolor="#e68641"] ;
+8 -> 9 ;
+10 [label=<squared_error = 2047486.651<br/>samples = 43<br/>value = 5037.0>, fillcolor="#eb9e67"] ;
+9 -> 10 ;
+11 [label=<squared_error = 1831393.578<br/>samples = 203<br/>value = 5947.887>, fillcolor="#e58139"] ;
+9 -> 11 ;
+12 [label=<windspeed &le; 0.237<br/>squared_error = 1118656.01<br/>samples = 25<br/>value = 3876.52>, fillcolor="#f3c3a1"] ;
+8 -> 12 ;
+13 [label=<squared_error = 686965.828<br/>samples = 19<br/>value = 4202.526>, fillcolor="#f1b991"] ;
+12 -> 13 ;
+14 [label=<squared_error = 1083367.806<br/>samples = 6<br/>value = 2844.167>, fillcolor="#f9e4d5"] ;
+12 -> 14 ;
+}
