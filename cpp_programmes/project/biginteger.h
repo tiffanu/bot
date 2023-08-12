@@ -1,10 +1,10 @@
 #include <iostream>
 #include <vector>
+#include <array>
 #include <string>
 
 class BigInteger {
 private:
-//public:
 
     static const int radix = 1'000'000'000;
 
@@ -90,6 +90,7 @@ public:
 
     friend BigInteger abs(const BigInteger&);
     friend BigInteger tenth_power(size_t);
+    friend bool isEven(const BigInteger&);
 
 
     BigInteger& operator+=(const BigInteger& bi) {
@@ -124,7 +125,10 @@ public:
             return (*this += -bi);
         }
         
-        BigInteger first_bi = (abs(*this) > abs(bi)) ? *this : bi, second_bi = (abs(*this) > abs(bi)) ? bi : *this;
+        BigInteger first_bi = *this, second_bi = bi;
+        if (abs(first_bi) < abs(bi)) {
+            std::swap(first_bi, second_bi);
+        }
         first_bi.sign = (*this >= bi) ? 1 : -1;
 
         while (second_bi.size < first_bi.size) {
@@ -262,7 +266,6 @@ public:
     friend bool operator<=(const BigInteger&, const BigInteger&);
     friend bool operator==(const BigInteger&, const BigInteger&);
     friend bool operator!=(const BigInteger&, const BigInteger&);
-
 };
 
 
@@ -387,18 +390,45 @@ std::istream& operator>>(std::istream& in, BigInteger& bi) {
     return in;
 }
 
+bool isEven(const BigInteger& bi) {
+    return (bi.body[0] % 2 == 0);
+}
+
 BigInteger abs(const BigInteger& bi) {
     BigInteger a(bi);
-    a.sign = 1;
+    a.sign = (a != 0);
     return a;
 }
 
 BigInteger gcd(BigInteger a, BigInteger b) {
-    if (b == 0) {
-        return a;
+    while (a != 0 && b != 0) {
+        if (a >= b) a %= b;
+        else b %= a;
     }
-    return gcd(b, a%b);
+    return a+b;
 }
+
+// BigInteger gcd(BigInteger a, BigInteger b) {
+//     while (a != 0 && b != 0) {
+//         if (a >= b) a -= b;
+//         else b -= a;
+//     }
+//     return a+b;
+// }
+
+// BigInteger gcd(BigInteger a, BigInteger b) {
+//     if (a == 0 || b == 0) {
+//         return a+b;
+//     }
+//     if (isEven(a) && isEven(b)) {
+//         return 2*gcd(a/2, b/2);
+//     } else if (isEven(a)) {
+//         return gcd(a/2, b);
+//     } else if (isEven(b)) {
+//         return gcd(a, b/2);
+//     }
+//     return gcd(b,a%b);
+// }
 
 BigInteger tenth_power(size_t degree) {
     BigInteger res;
@@ -424,9 +454,8 @@ private:
 
     BigInteger numerator, denominator; // num \in Z    den \in N
 
-
     void reduce() {
-        BigInteger d = gcd(numerator, denominator);
+        BigInteger d = gcd(abs(numerator), abs(denominator));
         if (d < 0) {
             d = -d;
         }
@@ -515,8 +544,8 @@ public:
         numerator = numerator*r.denominator + r.numerator*denominator;
         denominator *= r.denominator;
 
-        reduce();
         set_null();
+        reduce();
         return *this;
     }
 
@@ -524,8 +553,8 @@ public:
         numerator = numerator*r.denominator - r.numerator*denominator;
         denominator *= r.denominator;
 
-        reduce();
         set_null();
+        reduce();
         return *this;
     }
 
@@ -533,8 +562,8 @@ public:
         numerator *= r.numerator;
         denominator *= r.denominator;
 
-        reduce();
         set_null();
+        reduce();
         return *this;
     }
 
@@ -547,16 +576,14 @@ public:
         denominator *= r.numerator;
 
         change_signs();
-        reduce();
         set_null();
+        reduce();
         return *this;
     }
 
     Rational operator-() {
         Rational copy(*this);
-        if (numerator != 0) {
-            copy.numerator.sign *= -1;
-        }
+        copy.numerator.sign *= -1;
         return copy;
     }
 
@@ -578,7 +605,17 @@ public:
     friend bool operator<=(const Rational&, const Rational&);
     friend bool operator==(const Rational&, const Rational&);
     friend bool operator!=(const Rational&, const Rational&);
+
+    friend std::istream& operator>>(const std::istream&, Rational&);
 };
+
+
+std::istream& operator>>(std::istream& in, Rational& r) {
+    BigInteger bi;
+    in >> bi;
+    r = bi;
+    return in;
+}
 
 
 bool operator<(const Rational& r, const Rational& q) {
@@ -624,4 +661,9 @@ Rational operator*(const Rational& r, const Rational& q) {
 Rational operator/(const Rational& r, const Rational& q) {
     Rational copy(r);
     return (copy /= q);
+}
+
+std::ostream& operator<<(std::ostream& out, const Rational& r) {
+    out << r.toString();
+    return out;
 }
