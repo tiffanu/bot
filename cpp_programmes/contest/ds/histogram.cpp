@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <iostream>
 #include <stack>
 
 struct Column {
@@ -19,7 +19,7 @@ int main() {
     col.left = i;
     scanf("%lld", &col.h);
 
-    while (!s.empty() && s.top().h > col.h) {
+    while (!s.empty() && s.top().h >= col.h) {
       long long area = s.top().h * (i - s.top().left);
       ans = (ans > area) ? ans : area;
       col.left = s.top().left;
@@ -37,6 +37,6 @@ int main() {
     s.pop();
   }
   
-  printf("%lld", ans);
+  printf("%lld\n", ans);
 
 }

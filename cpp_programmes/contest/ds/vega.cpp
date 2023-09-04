@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <iostream>
 #include <stack>
 
 class Queue {

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <iostream>
 #include <vector>
 
 void merge(std::vector<int>& b, std::vector<int>& c, std::vector<int>& a, long long& inv) {

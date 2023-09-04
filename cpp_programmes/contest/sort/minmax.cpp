@@ -1,16 +1,11 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <set>
+#include <bits/stdc++.h> 
 
-using std::vector;
-using std::string;
-using std::set;
+using namespace std;
 
 class MinMax {
 private:
 
-    set<int> s;
+    multiset<int> s; // mb 2 бин кучи 
 
 public:
 
@@ -20,14 +15,14 @@ public:
 
     int getMin() {
         int ans = *(s.begin());
-        s.erase(ans);
+        s.erase(s.begin());
 
         return ans;
     }
 
     int getMax() {
         int ans = *(--s.end());
-        s.erase(ans);
+        s.erase(--s.end());
 
         return ans;
     }
